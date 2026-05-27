@@ -8,6 +8,7 @@
 circuit.vss               Visio stencil，包含 NMOS/PMOS/R/C/PIN 等 master
 inst_info.txt             Virtuoso instance 坐标、方向、BBox 信息
 netlist.txt               CDL 网表，用于识别器件端口和 net
+wires.xlsx                Virtuoso wire line 坐标表
 export_inst_xy_orient.il  Virtuoso SKILL：导出 inst_info.txt
 export_wire_lines_v4.il   Virtuoso SKILL：导出 wire line 坐标表
 cadence_to_visio_core.py  核心函数库，负责解析、坐标、过滤和基础绘图逻辑
@@ -15,7 +16,7 @@ cadence_to_visio_v2.py    V2.0 主入口脚本
 README.md                 中文说明文档
 ```
 
-注意：绘制 wire 仍需要 `wires.xlsx`。如果同目录没有该文件，请通过 `--wires` 指定路径。
+默认会读取同目录的 `wires.xlsx`。如果想使用其它 wire 坐标文件，可通过 `--wires` 指定路径。
 
 ## 环境依赖
 
@@ -43,7 +44,7 @@ load("/path/to/candence_to_visioV2.0/export_wire_lines_v4.il")
 c2vExportWireLinesV4("/path/to/candence_to_visioV2.0/wires.tsv")
 ```
 
-`cadence_to_visio_v2.py` 默认读取 `wires.xlsx`。导出 `wires.tsv` 后，可用 Excel 打开并另存为 `wires.xlsx`，或在运行时通过 `--wires` 指定已经整理好的 xlsx 文件。
+`cadence_to_visio_v2.py` 默认读取同目录的 `wires.xlsx`。导出 `wires.tsv` 后，可用 Excel 打开并另存为 `wires.xlsx`，覆盖当前目录中的示例文件；也可以在运行时通过 `--wires` 指定其它 xlsx 文件。
 
 ## 推荐运行方式
 
@@ -53,7 +54,7 @@ c2vExportWireLinesV4("/path/to/candence_to_visioV2.0/wires.tsv")
 python .\cadence_to_visio_v2.py --wires ..\wires.xlsx --no-draw-nodes
 ```
 
-如果 `wires.xlsx` 已放在当前 V2.0 目录内：
+当前目录已经包含 `wires.xlsx`，因此也可以直接运行：
 
 ```powershell
 python .\cadence_to_visio_v2.py --no-draw-nodes
