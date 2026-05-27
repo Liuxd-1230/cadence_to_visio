@@ -18,6 +18,7 @@ wires.xlsx                Virtuoso wire line 坐标表
 example.svg               V2.0 导出效果示例图
 export_inst_xy_orient.il  Virtuoso SKILL：导出 inst_info.txt
 export_wire_lines_v4.il   Virtuoso SKILL：导出 wire line 坐标
+old_cadence_to_visio/     旧版本脚本、早期示例图和实验中间文件归档
 ```
 
 ## 环境依赖

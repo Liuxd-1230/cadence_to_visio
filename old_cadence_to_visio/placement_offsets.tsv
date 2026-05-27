@@ -1,0 +1,12 @@
+# scope	target	dx	dy
+# Offsets are in Virtuoso coordinate units before Visio page translation.
+# Matching rules are additive in this order-independent file:
+#   global *             dx dy   -> all instances
+#   type   NMOS          dx dy   -> all NMOS classified by the script
+#   cell   nud18ll_ckt   dx dy   -> all instances using this cell
+#   inst   NM3           dx dy   -> one instance only
+#
+# Example: move every NMOS 0.10 right and 0.05 down:
+# type	NMOS	0.10	-0.05
+#
+# Keep this file with comments only when no placement correction is needed.
