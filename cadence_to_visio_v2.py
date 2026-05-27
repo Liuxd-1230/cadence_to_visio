@@ -138,7 +138,7 @@ def collect_pin_candidates(
 
         pin_order = core.DEVICE_PIN_ORDER.get(inst.dev_type, [])
         for pin, net in device.pins.items():
-            if pin.upper() in excluded_pins or pin not in pin_order:
+            if core.pin_is_excluded(inst.dev_type, pin, excluded_pins) or pin not in pin_order:
                 continue
 
             conn_idx = pin_order.index(pin) + 1
@@ -521,7 +521,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--symbol-fit", choices=core.SYMBOL_FIT_MODES, default="native", help="器件 master 缩放方式")
     parser.add_argument("--wire-adjust", choices=("none", "snap-endpoints"), default="none", help="是否微调悬空端点")
     parser.add_argument("--pin-snap-threshold", type=float, default=0.8, help="pin/endpoint 匹配距离阈值")
-    parser.add_argument("--exclude-pins", default="", help="排除附着/吸附的 pin，例如 B")
+    parser.add_argument("--exclude-pins", default="", help="排除附着/吸附的 pin，例如 B 或 MOS:B")
     parser.add_argument("--skip-nets", default="", help="完全跳过指定 net，例如 vdd,vss")
     parser.add_argument("--skip-mos-body-nets", action="store_true", help="跳过所有连接 MOS B 的 net")
     parser.add_argument(
@@ -611,7 +611,7 @@ def main() -> None:
 
     excluded_pins = {pin.strip().upper() for pin in args.exclude_pins.split(",") if pin.strip()}
     if not args.draw_mos_b_wires:
-        excluded_pins.add("B")
+        excluded_pins.add("MOS:B")
 
     draw_visio(instances, devices, wires, args, coord, excluded_pins, placement_offsets)
 

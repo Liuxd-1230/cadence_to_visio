@@ -37,8 +37,9 @@ WIRE_ADJUST_MODES = ("none", "snap-endpoints", "adapters")
 PIN_ADAPTER_WEIGHT = "1.1 pt"
 PIN_ADAPTER_EPS = 1e-4
 NODE_SIZE = 2.0 / 25.4
-POWER_NET_KEYS = {"VDD", "VSS"}
-
+# POWER_NET_KEYS = {"VDD", "VSS"}
+# POWER_NET_KEYS = {"DVDD", "AVSS"}
+POWER_NET_KEYS = {"AVCC", "AVSS"}
 
 Point = Tuple[float, float]
 BBox = Tuple[float, float, float, float]
@@ -170,6 +171,8 @@ class CoordMap:
 DEVICE_PIN_ORDER = {
     "NMOS": ["D", "G", "S", "B"],
     "PMOS": ["D", "G", "S", "B"],
+    "NPN": ["B", "E", "C"],
+    "PNP": ["B", "E", "C"],
     "RES": ["R_up", "R_down"],
     "CAP": ["C_up", "C_down"],
 }
@@ -177,6 +180,8 @@ DEVICE_PIN_ORDER = {
 MASTER_CANDIDATES = {
     "NMOS": ["NMOS", "nmos", "nud18ll_ckt", "n25ll_ckt"],
     "PMOS": ["PMOS", "pmos", "pud18ll_ckt", "p25ll_ckt"],
+    "NPN": ["NPN", "npn", "npn25", "npn25a25ll_ckt"],
+    "PNP": ["PNP", "pnp", "pnp25", "pnp25a25ll_ckt"],
     "RES": ["R", "RES", "res", "rpposab_2t_ckt"],
     "CAP": ["C", "CAP", "cap"],
     "PIN": ["PIN", "pin", "ipin", "opin", "iopin", "input", "output", "io"],
@@ -195,6 +200,16 @@ PIN_HINTS = {
         "G": (-0.5, 0.0),
         "S": (0.5, 0.5),
         "B": (0.5, 0.0),
+    },
+    "NPN": {
+        "B": (-0.5, 0.0),
+        "E": (0.5, -0.5),
+        "C": (0.5, 0.5),
+    },
+    "PNP": {
+        "B": (-0.5, 0.0),
+        "E": (0.5, -0.5),
+        "C": (0.5, 0.5),
     },
     "RES": {
         "R_up": (0.0, 0.5),
@@ -215,6 +230,10 @@ def classify_device(name: str, cell: str = "") -> str:
         return "NMOS"
     if upper_name.startswith("PM") or lower_cell.startswith("pud") or "pmos" in lower_cell:
         return "PMOS"
+    if "npn" in lower_cell:
+        return "NPN"
+    if "pnp" in lower_cell:
+        return "PNP"
     if upper_name.startswith("R") or lower_cell in {"res", "r"} or "res" in lower_cell:
         return "RES"
     if upper_name.startswith("C") or lower_cell in {"cap", "c"} or "cap" in lower_cell:
@@ -222,6 +241,52 @@ def classify_device(name: str, cell: str = "") -> str:
     if upper_name.startswith("PIN") or lower_cell in {"ipin", "opin", "iopin"}:
         return "PIN"
     return "UNKNOWN"
+
+
+def infer_netlist_device_type(name: str, tokens: Sequence[str], instances: Dict[str, Instance]) -> str:
+    if name in instances:
+        return instances[name].dev_type
+
+    dev_type = classify_device(name)
+    if dev_type != "UNKNOWN":
+        return dev_type
+
+    non_param_tokens: List[str] = []
+    for token in tokens[1:]:
+        if "=" in token:
+            break
+        non_param_tokens.append(token)
+
+    for token in reversed(non_param_tokens):
+        lower_token = token.lower()
+        looks_like_model = (
+            lower_token.endswith("_ckt")
+            or "npn" in lower_token
+            or "pnp" in lower_token
+            or "nmos" in lower_token
+            or "pmos" in lower_token
+            or lower_token.startswith(("nud", "pud"))
+        )
+        if not looks_like_model:
+            continue
+
+        dev_type = classify_device(name, token)
+        if dev_type != "UNKNOWN":
+            return dev_type
+
+    return "UNKNOWN"
+
+
+def pin_is_excluded(dev_type: str, pin: str, excluded_pins: Set[str]) -> bool:
+    pin_key = pin.upper()
+    dev_key = dev_type.upper()
+    if pin_key in excluded_pins:
+        return True
+    if f"{dev_key}:{pin_key}" in excluded_pins:
+        return True
+    if dev_key in {"NMOS", "PMOS"} and f"MOS:{pin_key}" in excluded_pins:
+        return True
+    return False
 
 
 def parse_instances(path: str) -> Dict[str, Instance]:
@@ -279,7 +344,7 @@ def parse_netlist(path: str, instances: Dict[str, Instance]) -> List[NetDevice]:
             tokens = line.split()
             raw_name = tokens[0]
             name = netlist_instance_name(raw_name, instances)
-            dev_type = instances[name].dev_type if name in instances else classify_device(name)
+            dev_type = infer_netlist_device_type(name, tokens, instances)
 
             pin_names = DEVICE_PIN_ORDER.get(dev_type)
             if pin_names is None:
@@ -419,7 +484,7 @@ def placement_offset(inst: Instance, rules: Sequence[PlacementOffsetRule] = ()) 
 
 
 def visio_anchor_to_center_shift(inst: Instance, actual_width: float, actual_height: float) -> Point:
-    if inst.dev_type in {"NMOS", "PMOS"}:
+    if inst.dev_type in {"NMOS", "PMOS", "NPN", "PNP"}:
         base_dx, base_dy = (actual_width / 2, 0.0)
     elif inst.dev_type in {"RES", "CAP"}:
         base_dx, base_dy = (0.0, -actual_height / 2)
@@ -935,7 +1000,7 @@ def mos_source_junction_segments_to_restore(
         ]
         if not same_x_junctions:
             continue
-        if net_key == "VDD":
+        if net_key == "AVCC":
             directional_junctions = [
                 junction_point
                 for junction_point in same_x_junctions
@@ -1115,7 +1180,7 @@ def build_pin_candidates(
 
         pin_order = DEVICE_PIN_ORDER.get(inst.dev_type, [])
         for pin, net in device.pins.items():
-            if pin.upper() in excluded_pins or pin not in pin_order:
+            if pin_is_excluded(inst.dev_type, pin, excluded_pins) or pin not in pin_order:
                 continue
 
             conn_idx = pin_order.index(pin) + 1
@@ -1270,7 +1335,7 @@ def draw_pin_adapters(
 
         pin_order = DEVICE_PIN_ORDER.get(inst.dev_type, [])
         for pin, net in device.pins.items():
-            if pin.upper() in excluded_pins:
+            if pin_is_excluded(inst.dev_type, pin, excluded_pins):
                 continue
             if pin not in pin_order:
                 continue
@@ -1458,7 +1523,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--exclude-pins",
         default="",
-        help="Comma-separated device pins excluded from wire endpoint snapping",
+        help="Comma-separated device pins excluded from wire endpoint snapping; supports B, MOS:B, NMOS:B",
     )
     parser.add_argument(
         "--placement-offsets",
@@ -1558,7 +1623,7 @@ def main() -> None:
 
     excluded_pins = {pin.strip().upper() for pin in args.exclude_pins.split(",") if pin.strip()}
     if not args.draw_mos_b_wires:
-        excluded_pins.add("B")
+        excluded_pins.add("MOS:B")
     draw_visio(
         instances,
         devices,

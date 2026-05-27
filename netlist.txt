@@ -1,32 +1,33 @@
-.SUBCKT LVSX22V_25 EN VDDA VRef VSSA VWL2V
-*.PININFO EN:I VDDA:I VRef:I VSSA:I VWL2V:O
-XR1 net153 VSSA rpposab_2t_ckt r=121.357K w=800n l=152u mr=1
-XR2 VWL2V net153 rpposab_2t_ckt r=91.0181K w=800n l=114u mr=1
-XR3 net91 net85 rpposab_2t_ckt r=313.755 w=4u l=2u mr=1
-XNM2 net127 EN VSSA VSSA n25ll_ckt mr=1 l=350n w=800n
-XNM8 net87 net127 VSSA VSSA n25ll_ckt mr=2 l=2.8u w=1.2u
-XNM9 net91 net107 VSSA VSSA n25ll_ckt mr=2 l=2.8u w=1.2u
-XNM1 net95 VRef VSSA VSSA n25ll_ckt mr=1 l=8u w=1u
-XNM5 net127 net127 VSSA VSSA n25ll_ckt mr=1 l=2.8u w=1.2u
-XNM6 net103 VRef net111 VSSA n25ll_ckt mr=1 l=8u w=1u
-XNM12 net107 net107 VSSA VSSA n25ll_ckt mr=1 l=2.8u w=1.2u
-XNM11 net111 VRef net115 VSSA n25ll_ckt mr=1 l=8u w=1u
-XNM4 net119 EN VSSA VSSA n25ll_ckt mr=2 l=2.8u w=1.2u
-XNM3 net107 EN VSSA VSSA n25ll_ckt mr=1 l=350n w=800n
-XNM0 net115 VRef net95 VSSA n25ll_ckt mr=1 l=8u w=1u
-XPM3 net91 net119 VDDA VDDA p25ll_ckt mr=1 l=350n w=1.2u
-XPM11 VWL2V net91 VDDA VDDA p25ll_ckt mr=4 l=400n w=10u
-XPM9 net87 net87 VDDA VDDA p25ll_ckt mr=4 l=2.4u w=2u
-XPM10 net91 net87 VDDA VDDA p25ll_ckt mr=4 l=2.4u w=2u
-XPM0 net182 net182 VDDA VDDA p25ll_ckt mr=1 l=1.8u w=2.8u
-XPM1 net156 net182 VDDA VDDA p25ll_ckt mr=2 l=1.8u w=2.8u
-XPM4 net107 net153 net156 net156 p25ll_ckt mr=4 l=2.4u w=2u
-XPM2 net127 VRef net156 net156 p25ll_ckt mr=4 l=2.4u w=2u
-XPM8 net119 EN VDDA VDDA p25ll_ckt mr=1 l=350n w=1.2u
-XPM13 VWL2V net85 VWL2V VWL2V p25ll_ckt mr=4 l=10u w=12u
-XPM14 VWL2V net91 VWL2V VWL2V p25ll_ckt mr=1 l=10u w=4u
-XPM6 net182 net119 VDDA VDDA p25ll_ckt mr=1 l=350n w=1.2u
-XPM7 net103 EN net182 VDDA p25ll_ckt mr=1 l=1.2u w=2u
+
+.SUBCKT Voltage_Detector AVCC AVSS POWER_EN
+*.PININFO POWER_EN:O AVCC:B AVSS:B
+XQ0 AVSS AVSS VP pnp25a25ll_ckt M=1 area=30.858025p
+XQ1 AVSS AVSS net1 pnp25a25ll_ckt M=8 area=30.858025p
+XNM0 net2 net2 AVSS AVSS nod33ll_ckt mr=2 l=2u w=2u
+XNM3 net3 net3 AVSS AVSS nod33ll_ckt mr=2 l=2u w=2u
+XNM2 net2 net3 AVSS AVSS nod33ll_ckt mr=2 l=2u w=2.2u
+XNM1 net3 net2 AVSS AVSS nod33ll_ckt mr=2 l=2u w=2.2u
+XNM4 net5 net2 AVSS AVSS nod33ll_ckt mr=2 l=2u w=2u
+XNM8 net11 net8 net9 AVSS nod33ll_ckt mr=1 l=550n w=4u
+XNM10 AVCC net11 net9 AVSS nod33ll_ckt mr=1 l=550n w=4u
+XNM7 net7 net11 AVSS AVSS nod33ll_ckt mr=1 l=550n w=1u
+XNM5 net8 net3 AVSS AVSS nod33ll_ckt mr=2 l=2u w=2u
+XNM9 net9 net8 AVSS AVSS nod33ll_ckt mr=1 l=550n w=4u
+XNM11 POWER_EN net7 AVSS AVSS nod33ll_ckt mr=1 l=1u w=1u
+XNM46 AVSS POWER_EN AVSS AVSS nod33ll_ckt mr=1 l=4.991u w=40.084u
+XPM4 net6 net4 AVCC AVCC pod33ll_ckt mr=1 l=4u w=4u
+XPM1 net3 VP net6 net6 pod33ll_ckt mr=4 l=2u w=2u
+XPM0 net2 VN net6 net6 pod33ll_ckt mr=4 l=2u w=2u
+XPM5 net4 net4 AVCC AVCC pod33ll_ckt mr=1 l=4u w=4u
+XPM2 net5 net5 AVCC AVCC pod33ll_ckt mr=4 l=2u w=2u
+XPM8 net10 net8 AVCC AVCC pod33ll_ckt mr=1 l=440n w=4u
+XPM10 AVSS net11 net10 AVCC pod33ll_ckt mr=1 l=440n w=4u
+XPM3 net8 net5 AVCC AVCC pod33ll_ckt mr=4 l=2u w=2u
+XPM7 net7 net11 AVCC AVCC pod33ll_ckt mr=1 l=440n w=1u
+XPM9 net11 net8 net10 AVCC pod33ll_ckt mr=1 l=440n w=4u
+XPM11 POWER_EN net7 AVCC AVCC pod33ll_ckt mr=1 l=1u w=1u
+XR1 net4 VN rpposab_2t_ckt r=1.64412M w=400n l=1m mr=1
+XR0 net4 VP rpposab_2t_ckt r=1.64412M w=400n l=1m mr=1
+XR13 VN AVSS rpposab_2t_ckt r=3.15671M w=400n l=1.92m mr=1
+XR5 VN net1 rpposab_2t_ckt r=526.118K w=400n l=320u mr=1
 .ENDS
-
-
