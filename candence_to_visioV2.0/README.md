@@ -8,6 +8,8 @@
 circuit.vss               Visio stencil，包含 NMOS/PMOS/R/C/PIN 等 master
 inst_info.txt             Virtuoso instance 坐标、方向、BBox 信息
 netlist.txt               CDL 网表，用于识别器件端口和 net
+export_inst_xy_orient.il  Virtuoso SKILL：导出 inst_info.txt
+export_wire_lines_v4.il   Virtuoso SKILL：导出 wire line 坐标表
 cadence_to_visio_core.py  核心函数库，负责解析、坐标、过滤和基础绘图逻辑
 cadence_to_visio_v2.py    V2.0 主入口脚本
 README.md                 中文说明文档
@@ -24,6 +26,24 @@ pip install pywin32 openpyxl
 ```
 
 `pywin32` 用于控制 Visio，`openpyxl` 用于读取 `wires.xlsx`。
+
+## Virtuoso 数据导出
+
+在 CIW 中加载并运行器件信息导出：
+
+```lisp
+load("/path/to/candence_to_visioV2.0/export_inst_xy_orient.il")
+c2vExportInstXYOrient("/path/to/candence_to_visioV2.0/inst_info.txt")
+```
+
+在 CIW 中加载并运行 wire 坐标导出：
+
+```lisp
+load("/path/to/candence_to_visioV2.0/export_wire_lines_v4.il")
+c2vExportWireLinesV4("/path/to/candence_to_visioV2.0/wires.tsv")
+```
+
+`cadence_to_visio_v2.py` 默认读取 `wires.xlsx`。导出 `wires.tsv` 后，可用 Excel 打开并另存为 `wires.xlsx`，或在运行时通过 `--wires` 指定已经整理好的 xlsx 文件。
 
 ## 推荐运行方式
 
