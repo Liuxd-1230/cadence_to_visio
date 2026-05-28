@@ -1,17 +1,13 @@
 @echo off
-REM ============================================
-REM  Cadence to Visio — 一键打包脚本
-REM  使用 PyInstaller 生成独立 exe
-REM ============================================
+chcp 65001 >nul
 setlocal
 
 echo.
 echo ========================================
-echo  Cadence to Visio — 打包工具
+echo  Cadence to Visio - 打包工具
 echo ========================================
 echo.
 
-REM 检查 Python
 python --version >nul 2>&1
 if errorlevel 1 (
     echo [错误] 未找到 Python，请先安装 Python 3.8+
@@ -19,7 +15,6 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 安装依赖
 echo [1/3] 安装依赖...
 pip install -r requirements.txt -q
 if errorlevel 1 (
@@ -28,21 +23,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM 打包
 echo [2/3] 打包中（约 1-2 分钟）...
-pyinstaller ^
-    --noconfirm ^
-    --onefile ^
-    --windowed ^
-    --name "CadenceToVisio" ^
-    --add-data "circuit.vss;." ^
-    --add-data "cadence_to_visio_core.py;." ^
-    --add-data "cadence_to_visio_v2.py;." ^
-    --hidden-import openpyxl ^
-    --hidden-import win32com ^
-    --hidden-import win32com.client ^
-    --hidden-import pythoncom ^
-    gui_app.py
+pyinstaller --noconfirm --onefile --windowed --name "CadenceToVisio" --add-data "circuit.vss;." --add-data "cadence_to_visio_core.py;." --add-data "cadence_to_visio_v2.py;." --hidden-import openpyxl --hidden-import win32com --hidden-import win32com.client --hidden-import pythoncom gui_app.py
 
 if errorlevel 1 (
     echo [错误] 打包失败
@@ -52,7 +34,6 @@ if errorlevel 1 (
 
 echo.
 echo [3/3] 打包完成！
-echo.
 echo ========================================
 echo  输出文件: dist\CadenceToVisio.exe
 echo ========================================
