@@ -41,6 +41,87 @@ DEFAULT_FILES = {
     "stencil": "circuit.vss",
 }
 
+# 帮助文本
+HELP_TEXT = """Cadence to Visio V2.0 — 使用说明
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【功能】
+将 Cadence/Virtuoso 原理图导出的器件、网表和走线坐标重建到 Microsoft Visio，生成可编辑的原理图。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【从 Virtuoso 导出数据】
+
+1. 导出器件信息：
+   在 Virtuoso CIW 中执行：
+   load("/path/to/export_inst_xy_orient.il")
+   c2vExportInstXYOrient("/path/to/inst_info.txt")
+
+2. 导出走线坐标：
+   load("/path/to/export_wire_lines_v4.il")
+   c2vExportWireLinesV4("/path/to/wires.tsv")
+   然后用 Excel 将 wires.tsv 另存为 wires.xlsx
+
+3. CDL 网表保存为 netlist.txt
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【输入文件说明】
+
+  inst_info.txt  — 器件坐标、方向、BBox（Virtuoso SKILL 导出）
+  netlist.txt    — CDL/SPICE 网表（器件→网络连接关系）
+  wires.xlsx     — Virtuoso wire 坐标（group_id, seg_id, net, x1, y1, x2, y2）
+  circuit.vss    — Visio stencil 模板（NMOS/PMOS/R/C 等符号）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【选项说明】
+
+  基本选项：
+  ✓ 启用附着    — 把线段端点附着到器件 pin 或共享连接点
+  ✓ 绘制交汇点  — 绘制 T 形交汇处的 node 圆点
+    Visio 内置连接线 — 使用 Visio Dynamic Connector（默认关闭，避免自动改线）
+    绘制 MOS B 端分支线 — 是否画 MOS body 端的连线
+    跳过 MOS B net   — 自动跳过所有 MOS body 连接的 net
+    后台运行 Visio   — 不显示 Visio 窗口
+    仅检查输入       — 只验证输入文件，不打开 Visio
+
+  高级选项：
+  跳过 net       — 逗号分隔的 net 名，如 vdd,vss
+  排除 pin       — 不参与附着的 pin，如 B 或 MOS:B
+  全局缩放       — 默认 1.0，放大/缩小整个图纸
+  Symbol 缩放    — uniform（统一缩放）/ native（原始大小）/ stretch（拉伸）
+  Wire 微调      — none（不微调）/ snap-endpoints（吸附悬空端点）
+  Pin 吸附阈值   — endpoint 与 pin 匹配的最大距离，默认 0.8
+  Placement 偏移 — 器件偏移规则文件（placement_offsets.tsv）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【支持器件】
+  NMOS, PMOS, NPN, PNP, R（电阻）, C（电容）, PIN
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【系统要求】
+  • Windows 10/11
+  • Microsoft Visio 2016/2019/2021/2024（独立版或批量许可证）
+  • 注意：Microsoft 365 网页版不支持 COM 自动化
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【常见问题】
+
+Q: 报错 "无效的类字符串" / "类未注册"
+A: Visio 未安装或位数不匹配。检查 Python 和 Visio 是否同为 64 位。
+
+Q: 报错 "需要安装 pywin32"
+A: 运行 pip install pywin32
+
+Q: 器件位置偏移
+A: 可通过 placement_offsets.tsv 手动校准，或调整 --scale 参数
+"""
+
 
 def get_base_dir() -> Path:
     """获取 exe 或脚本所在目录。"""
@@ -50,14 +131,62 @@ def get_base_dir() -> Path:
 
 
 # ---------------------------------------------------------------------------
+# 帮助窗口
+# ---------------------------------------------------------------------------
+class HelpWindow:
+    def __init__(self, parent: tk.Tk):
+        self.win = tk.Toplevel(parent)
+        self.win.title("使用说明")
+        self.win.geometry("600x650")
+        self.win.configure(bg=BG_DARK)
+        self.win.transient(parent)
+        self.win.grab_set()
+
+        # 标题
+        tk.Label(
+            self.win,
+            text="📖 使用说明",
+            font=("Segoe UI", 16, "bold"),
+            fg=FG_ACCENT,
+            bg=BG_DARK,
+        ).pack(pady=(16, 8))
+
+        # 内容
+        text = scrolledtext.ScrolledText(
+            self.win,
+            font=("Consolas", 10),
+            bg=BG_INPUT,
+            fg=FG_TEXT,
+            insertbackground=FG_TEXT,
+            relief=tk.FLAT,
+            wrap=tk.WORD,
+        )
+        text.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 16))
+        text.insert(tk.END, HELP_TEXT)
+        text.configure(state=tk.DISABLED)
+
+        # 关闭按钮
+        tk.Button(
+            self.win,
+            text="关闭",
+            font=("Segoe UI", 10),
+            fg=FG_TEXT,
+            bg=BG_INPUT,
+            activebackground=HOVER,
+            relief=tk.FLAT,
+            command=self.win.destroy,
+        ).pack(pady=(0, 12), ipadx=20, ipady=4)
+
+
+# ---------------------------------------------------------------------------
 # GUI
 # ---------------------------------------------------------------------------
 class CadenceToVisioGUI:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title(APP_TITLE)
-        self.root.geometry("720x760")
-        self.root.minsize(600, 600)
+        self.root.geometry("760x820")
+        self.root.minsize(640, 650)
         self.root.configure(bg=BG_DARK)
 
         self.base_dir = get_base_dir()
@@ -68,7 +197,7 @@ class CadenceToVisioGUI:
 
     # ---- UI 构建 ----
     def _build_ui(self):
-        # 标题
+        # 标题栏
         header = tk.Frame(self.root, bg=BG_DARK)
         header.pack(fill=tk.X, padx=20, pady=(16, 8))
 
@@ -88,6 +217,29 @@ class CadenceToVisioGUI:
             bg=BG_DARK,
         ).pack(side=tk.LEFT, padx=(8, 0), pady=(6, 0))
 
+        # 右上角帮助按钮
+        help_btn = tk.Button(
+            header,
+            text="❓",
+            font=("Segoe UI", 14),
+            fg=FG_ACCENT,
+            bg=BG_DARK,
+            activebackground=BG_CARD,
+            activeforeground=FG_ACCENT,
+            relief=tk.FLAT,
+            cursor="hand2",
+            command=lambda: HelpWindow(self.root),
+        )
+        help_btn.pack(side=tk.RIGHT)
+
+        tk.Label(
+            header,
+            text="帮助",
+            font=("Segoe UI", 9),
+            fg=FG_DIM,
+            bg=BG_DARK,
+        ).pack(side=tk.RIGHT, padx=(0, 4), pady=(6, 0))
+
         # ---- 文件选择区域 ----
         file_frame = self._card("输入文件")
         self.file_vars: dict[str, tk.StringVar] = {}
@@ -100,24 +252,24 @@ class CadenceToVisioGUI:
         for key, label in file_labels:
             self._file_row(file_frame, key, label)
 
-        # ---- 选项区域 ----
-        opt_frame = self._card("选项")
+        # ---- 基本选项区域 ----
+        basic_frame = self._card("基本选项")
         self.option_vars: dict[str, tk.BooleanVar | tk.StringVar] = {}
 
         opts = [
-            ("attach", "启用附着 (线端→器件 pin)", True),
+            ("attach", "启用附着（线端→器件 pin）", True),
             ("draw_nodes", "绘制 T 形交汇点", True),
             ("visio_connectors", "Visio 内置连接线", False),
             ("draw_mos_b_wires", "绘制 MOS B 端分支线", False),
             ("skip_mos_body_nets", "跳过 MOS B net", False),
             ("hidden", "后台运行 Visio", False),
-            ("dry_run", "仅检查输入 (不打开 Visio)", False),
+            ("dry_run", "仅检查输入（不打开 Visio）", False),
         ]
         for key, label, default in opts:
             var = tk.BooleanVar(value=default)
             self.option_vars[key] = var
             cb = tk.Checkbutton(
-                opt_frame,
+                basic_frame,
                 text=label,
                 variable=var,
                 font=("Segoe UI", 10),
@@ -130,7 +282,7 @@ class CadenceToVisioGUI:
             cb.pack(anchor=tk.W, padx=16, pady=2)
 
         # skip-nets 输入
-        skip_row = tk.Frame(opt_frame, bg=BG_CARD)
+        skip_row = tk.Frame(basic_frame, bg=BG_CARD)
         skip_row.pack(fill=tk.X, padx=16, pady=(6, 4))
         tk.Label(
             skip_row, text="跳过 net：", font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD
@@ -154,6 +306,82 @@ class CadenceToVisioGUI:
             fg=FG_DIM,
             bg=BG_CARD,
         ).pack(side=tk.LEFT, padx=(8, 0))
+
+        # ---- 高级选项区域 ----
+        adv_frame = self._card("高级选项")
+
+        # 第一行：exclude-pins + symbol-fit
+        row1 = tk.Frame(adv_frame, bg=BG_CARD)
+        row1.pack(fill=tk.X, padx=16, pady=(8, 4))
+
+        tk.Label(row1, text="排除 pin：", font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD).pack(side=tk.LEFT)
+        self.exclude_pins_var = tk.StringVar(value="")
+        tk.Entry(
+            row1, textvariable=self.exclude_pins_var,
+            font=("Segoe UI", 9), bg=BG_INPUT, fg=FG_TEXT,
+            insertbackground=FG_TEXT, relief=tk.FLAT, width=12,
+        ).pack(side=tk.LEFT, padx=(4, 16), ipady=3)
+
+        tk.Label(row1, text="Symbol 缩放：", font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD).pack(side=tk.LEFT)
+        self.symbol_fit_var = tk.StringVar(value="native")
+        symbol_fit_menu = tk.OptionMenu(row1, self.symbol_fit_var, "native", "uniform", "stretch")
+        symbol_fit_menu.configure(
+            font=("Segoe UI", 9), bg=BG_INPUT, fg=FG_TEXT,
+            activebackground=HOVER, activeforeground=FG_TEXT,
+            highlightthickness=0, relief=tk.FLAT,
+        )
+        symbol_fit_menu["menu"].configure(bg=BG_INPUT, fg=FG_TEXT)
+        symbol_fit_menu.pack(side=tk.LEFT, padx=(4, 0), ipady=3)
+
+        # 第二行：scale + wire-adjust
+        row2 = tk.Frame(adv_frame, bg=BG_CARD)
+        row2.pack(fill=tk.X, padx=16, pady=4)
+
+        tk.Label(row2, text="全局缩放：", font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD).pack(side=tk.LEFT)
+        self.scale_var = tk.StringVar(value="1.0")
+        tk.Entry(
+            row2, textvariable=self.scale_var,
+            font=("Segoe UI", 9), bg=BG_INPUT, fg=FG_TEXT,
+            insertbackground=FG_TEXT, relief=tk.FLAT, width=8,
+        ).pack(side=tk.LEFT, padx=(4, 16), ipady=3)
+
+        tk.Label(row2, text="Wire 微调：", font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD).pack(side=tk.LEFT)
+        self.wire_adjust_var = tk.StringVar(value="none")
+        wire_adjust_menu = tk.OptionMenu(row2, self.wire_adjust_var, "none", "snap-endpoints")
+        wire_adjust_menu.configure(
+            font=("Segoe UI", 9), bg=BG_INPUT, fg=FG_TEXT,
+            activebackground=HOVER, activeforeground=FG_TEXT,
+            highlightthickness=0, relief=tk.FLAT,
+        )
+        wire_adjust_menu["menu"].configure(bg=BG_INPUT, fg=FG_TEXT)
+        wire_adjust_menu.pack(side=tk.LEFT, padx=(4, 0), ipady=3)
+
+        # 第三行：pin-snap-threshold
+        row3 = tk.Frame(adv_frame, bg=BG_CARD)
+        row3.pack(fill=tk.X, padx=16, pady=(4, 8))
+
+        tk.Label(row3, text="Pin 吸附阈值：", font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD).pack(side=tk.LEFT)
+        self.pin_snap_var = tk.StringVar(value="0.8")
+        tk.Entry(
+            row3, textvariable=self.pin_snap_var,
+            font=("Segoe UI", 9), bg=BG_INPUT, fg=FG_TEXT,
+            insertbackground=FG_TEXT, relief=tk.FLAT, width=8,
+        ).pack(side=tk.LEFT, padx=(4, 16), ipady=3)
+
+        # preserve-absolute + flip-y
+        self.preserve_abs_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            row3, text="保留绝对坐标", variable=self.preserve_abs_var,
+            font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD,
+            selectcolor=BG_INPUT, activebackground=BG_CARD, activeforeground=FG_TEXT,
+        ).pack(side=tk.LEFT, padx=(0, 12))
+
+        self.flip_y_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            row3, text="翻转 Y 轴", variable=self.flip_y_var,
+            font=("Segoe UI", 10), fg=FG_TEXT, bg=BG_CARD,
+            selectcolor=BG_INPUT, activebackground=BG_CARD, activeforeground=FG_TEXT,
+        ).pack(side=tk.LEFT)
 
         # ---- 按钮 ----
         btn_frame = tk.Frame(self.root, bg=BG_DARK)
@@ -197,7 +425,7 @@ class CadenceToVisioGUI:
             insertbackground=FG_TEXT,
             relief=tk.FLAT,
             wrap=tk.WORD,
-            height=14,
+            height=12,
         )
         self.log_text.pack(fill=tk.BOTH, expand=True, padx=12, pady=(4, 12))
         self.log_text.configure(state=tk.DISABLED)
@@ -341,6 +569,32 @@ class CadenceToVisioGUI:
             skip = self.skip_nets_var.get().strip()
             if skip:
                 args_list += ["--skip-nets", skip]
+
+            # 高级选项
+            exclude = self.exclude_pins_var.get().strip()
+            if exclude:
+                args_list += ["--exclude-pins", exclude]
+
+            scale = self.scale_var.get().strip()
+            if scale and scale != "1.0":
+                args_list += ["--scale", scale]
+
+            symbol_fit = self.symbol_fit_var.get()
+            if symbol_fit != "native":
+                args_list += ["--symbol-fit", symbol_fit]
+
+            wire_adjust = self.wire_adjust_var.get()
+            if wire_adjust != "none":
+                args_list += ["--wire-adjust", wire_adjust]
+
+            pin_snap = self.pin_snap_var.get().strip()
+            if pin_snap and pin_snap != "0.8":
+                args_list += ["--pin-snap-threshold", pin_snap]
+
+            if self.preserve_abs_var.get():
+                args_list.append("--preserve-absolute")
+            if self.flip_y_var.get():
+                args_list.append("--flip-y")
 
             self.root.after(0, self._log, f"  命令: python {' '.join(args_list)}", FG_DIM)
 
